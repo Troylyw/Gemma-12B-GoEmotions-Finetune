@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-import seaborn as sns  # 必须安装 seaborn
+import seaborn as sns  
 
 import torch
 import torch.distributed as dist
@@ -67,7 +67,10 @@ if not dist.is_initialized():
         print(f"DDP Initialized. World Size: {world_size}")
 
 # --- 2. Load Model ---
-GEMMA_PATH = "./gemma-3-12b-it-local" 
+# *** Model Configuration ***
+# Use the official Hugging Face ID so others can reproduce the work.
+# If running on NERSC/Offline, you can change this to your local path.
+GEMMA_PATH = "google/gemma-3-12b-it"
 
 if global_rank == 0:
     print(f"Loading model from {GEMMA_PATH}...")
@@ -301,7 +304,6 @@ if global_rank == 0:
     trainer.model.save_pretrained("trained-model-goemotions-final")
     tokenizer.save_pretrained("trained-model-goemotions-final")
     
-    # A. 绘制 Loss 曲线
     print("Generating Loss Plot...")
     log_history = trainer.state.log_history
     train_steps = [x["step"] for x in log_history if "loss" in x]
@@ -331,16 +333,13 @@ if global_rank == 0:
     if len(test_labels_list) > 0:
         evaluate_metrics(test_labels_list, y_pred_final, phase="Final")
     
-    # 保存原始结果
     results_df = pd.DataFrame({'input': df_test['input'], 'true': test_labels_list, 'pred': y_pred_final})
     results_df.to_csv("goemotions_results.csv", index=False)
     print("✅ Saved raw predictions to goemotions_results.csv")
 
-    # --- B. 执行高级分析 (Ekman & Sentiment) ---
     print("\n Starting Advanced Analysis...")
     
     try:
-        # 加载映射
         with open('ekman_mapping.json', 'r') as f:
             ekman_lookup = invert_mapping(json.load(f))
         with open('sentiment_mapping.json', 'r') as f:
@@ -349,15 +348,12 @@ if global_rank == 0:
         y_true_orig = results_df['true'].apply(parse_labels)
         y_pred_orig = results_df['pred'].apply(parse_labels)
 
-        # 1. 原始 28 类分析
         generate_analysis(y_true_orig, y_pred_orig, "Original 28 Emotions", "goemotions_original")
 
-        # 2. Ekman 7 类分析
         y_true_ekman = y_true_orig.apply(lambda x: map_labels(x, ekman_lookup))
         y_pred_ekman = y_pred_orig.apply(lambda x: map_labels(x, ekman_lookup))
         generate_analysis(y_true_ekman, y_pred_ekman, "Ekman Grouping", "goemotions_ekman")
 
-        # 3. Sentiment 4 类分析
         y_true_sent = y_true_orig.apply(lambda x: map_labels(x, sentiment_lookup))
         y_pred_sent = y_pred_orig.apply(lambda x: map_labels(x, sentiment_lookup))
         generate_analysis(y_true_sent, y_pred_sent, "Sentiment Grouping", "goemotions_sentiment")
