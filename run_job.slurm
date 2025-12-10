@@ -14,15 +14,13 @@ source /pscratch/sd/t/troylyw/nanogpt-env/bin/activate
 cd /pscratch/sd/t/troylyw/gemma
 
 
-# --- 2. 设置环境变量 ---
 export OMP_NUM_THREADS=8
 export PYTHONFAULTHANDLER=1
 export TORCHAO_CPP_EXT_SKIP=1
 
-# 屏蔽之前的 torchao 警告
 export TORCHAO_CPP_EXT_SKIP=1 
 
-# --- 3. 运行命令 ---
+
 echo "Job started on $(hostname) at $(date)"
 
 srun -u python fine-tune-goem-5e-5.py
