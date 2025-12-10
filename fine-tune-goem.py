@@ -29,7 +29,6 @@ from sklearn.metrics import accuracy_score, classification_report
 from sklearn.preprocessing import MultiLabelBinarizer
 
 # --- 1. CRITICAL SLURM & DDP SETUP ---
-# 这一步必须最先执行
 if "SLURM_PROCID" in os.environ:
     os.environ["RANK"] = os.environ["SLURM_PROCID"]
     os.environ["LOCAL_RANK"] = os.environ["SLURM_LOCALID"]
@@ -58,13 +57,11 @@ def set_deterministic(seed):
 SEED = 42
 set_deterministic(SEED)
 
-# 获取 Rank 信息
 global_rank = int(os.environ.get("RANK", 0))
 local_rank = int(os.environ.get("LOCAL_RANK", 0))
 world_size = int(os.environ.get("WORLD_SIZE", 1))
 device_string = f"cuda:{local_rank}"
 
-# *** 显式初始化 DDP (为了加速推理) ***
 torch.cuda.set_device(local_rank)
 if not dist.is_initialized():
     dist.init_process_group(backend="nccl")
@@ -73,7 +70,10 @@ if not dist.is_initialized():
         print(f" Master Node: {os.environ.get('MASTER_ADDR')}")
 
 # --- 2. Load Model ---
-GEMMA_PATH = "./gemma-3-12b-it-local" 
+# *** Model Configuration ***
+# Use the official Hugging Face ID so others can reproduce the work.
+# If running on NERSC/Offline, you can change this to your local path.
+GEMMA_PATH = "google/gemma-3-12b-it"
 
 if global_rank == 0:
     print(f"Loading model from {GEMMA_PATH}...")
@@ -132,20 +132,16 @@ train_data = Dataset.from_pandas(df_train)
 eval_data = Dataset.from_pandas(df_eval)
 
 # --- 4. DDP Accelerated Inference Function ---
-# 这里的逻辑是：切分数据 -> 各跑各的 -> 汇总结果
-
 def distributed_predict(all_prompts, model, tokenizer):
     total_samples = len(all_prompts)
     if total_samples == 0: return []
     
-    # 1. 任务切分: Rank 0 跑 [0, 4, 8...], Rank 1 跑 [1, 5, 9...]
     my_indices = list(range(global_rank, total_samples, world_size))
     my_prompts = [all_prompts[i] for i in my_indices]
     
     my_results = []
-    batch_size = 64 # 显存够的话调大
+    batch_size = 64 
     
-    # 只有 Rank 0 显示进度条，避免刷屏
     iterator = tqdm(range(0, len(my_prompts), batch_size), desc="DDP Inference") if global_rank == 0 else range(0, len(my_prompts), batch_size)
 
     for i in iterator:
@@ -160,23 +156,19 @@ def distributed_predict(all_prompts, model, tokenizer):
         
         for text in decoded:
             try:
-                # 提取等号后面的内容
                 ans = text.split("=")[-1].lower().strip()
             except:
                 ans = "none"
             my_results.append(ans)
             
-    # 2. 结果汇总 (All Gather)
-    # 收集 (index, result) 对，以便重新排序
     my_data_pairs = list(zip(my_indices, my_results))
     all_data_pairs = [None for _ in range(world_size)]
     
     dist.all_gather_object(all_data_pairs, my_data_pairs)
     
-    # 3. 排序还原 (只在 Rank 0 返回)
     if global_rank == 0:
         flat_pairs = [item for sublist in all_data_pairs if sublist for item in sublist]
-        flat_pairs.sort(key=lambda x: x[0]) # 按原始索引排序
+        flat_pairs.sort(key=lambda x: x[0]) 
         return [x[1] for x in flat_pairs]
     else:
         return []
@@ -192,7 +184,6 @@ def evaluate_metrics(y_true, y_pred, phase="Final"):
 dist.barrier()
 if global_rank == 0: print("Starting Fast Baseline Evaluation...")
 
-# 临时关闭 checkpoing 加速推理
 model.gradient_checkpointing_disable() 
 model.config.use_cache = True
 
@@ -227,7 +218,6 @@ training_arguments = SFTConfig(
     per_device_train_batch_size=4, 
     gradient_accumulation_steps=4,
     
-    # 关键：防止死锁
     dataloader_num_workers=0,
     
     optim="adamw_torch_fused",
@@ -246,7 +236,6 @@ training_arguments = SFTConfig(
 )
 training_arguments.max_seq_length = 256
 
-# SFTTrainer 会复用我们已经初始化的 DDP 环境
 trainer = SFTTrainer(
     model=model,
     train_dataset=train_data,
@@ -267,19 +256,15 @@ if global_rank == 0:
     trainer.model.save_pretrained("trained-model-goemotions-final")
     tokenizer.save_pretrained("trained-model-goemotions-final")
 
-    # 👇👇👇 绘图代码插入位置 👇👇👇
     print("Generating Loss Plot...")
     log_history = trainer.state.log_history
     
-    # 提取训练集 Loss
     train_steps = [x["step"] for x in log_history if "loss" in x]
     train_losses = [x["loss"] for x in log_history if "loss" in x]
     
-    # 提取验证集 Loss
     eval_steps = [x["step"] for x in log_history if "eval_loss" in x]
     eval_losses = [x["eval_loss"] for x in log_history if "eval_loss" in x]
     
-    # 开始绘图
     plt.figure(figsize=(10, 6))
     if train_losses:
         plt.plot(train_steps, train_losses, label="Training Loss", color="blue", alpha=0.6)
@@ -292,10 +277,8 @@ if global_rank == 0:
     plt.legend()
     plt.grid(True)
     
-    # 保存图片
     plt.savefig("loss_plot_goemotions.png")
     print("Saved loss chart to 'loss_plot_goemotions.png'")
-    # 👆👆👆 插入结束 👆👆👆
 
     print("Starting Final Evaluation...")
 
@@ -310,45 +293,34 @@ if global_rank == 0:
     if len(test_labels_list) > 0:
         evaluate_metrics(test_labels_list, y_pred_final, phase="Final")
     
-    # 保存结果 CSV
     csv_filename = "goemotions_results.csv"
     results_df = pd.DataFrame({'input': df_test['input'], 'true': test_labels_list, 'pred': y_pred_final})
     results_df.to_csv(csv_filename, index=False)
     print(f"Saved results csv to {csv_filename}")
 
-    # 👇👇👇 详细评估 & 热力图代码插入位置 👇👇👇
     print("Generating Detailed Classification Report & Heatmap...")
     
-    # 数据预处理：将字符串 "joy, admiration" 转为列表 ['joy', 'admiration']
     def parse_labels(text):
         if pd.isna(text) or str(text).lower() == "none":
             return []
-        # 统一转小写，去空格，按逗号分割
         return [t.strip().lower() for t in str(text).split(',') if t.strip()]
 
-    # 直接使用内存中的 DataFrame，不必重新读取 CSV
     y_true = results_df['true'].apply(parse_labels)
     y_pred = results_df['pred'].apply(parse_labels)
 
-    # 多标签二值化 (MultiLabelBinarizer)
     mlb = MultiLabelBinarizer()
-    # 必须 fit y_true 以获取所有可能的真实标签
     y_true_bin = mlb.fit_transform(y_true)
     y_pred_bin = mlb.transform(y_pred)
     labels = mlb.classes_
 
     print(f"\n📊 Total Classes Detected: {len(labels)}")
     
-    # 生成详细分类报告 (Precision / Recall / F1)
     print("="*60)
     print("           DETAILED CLASSIFICATION REPORT")
     print("="*60)
-    # zero_division=0 防止除以零报错
     report = classification_report(y_true_bin, y_pred_bin, target_names=labels, zero_division=0)
     print(report)
 
-    # 绘制“混淆热力图” (Confusion Heatmap)
-    # 逻辑：统计当真实标签包含 Row 时，模型预测出 Col 的次数
     confusion_matrix = np.zeros((len(labels), len(labels)))
 
     for true_labels, pred_labels in zip(y_true, y_pred):
