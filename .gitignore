@@ -1,0 +1,27 @@
+# 1. 忽略大模型权重和文件夹
+gemma-3-12b-it-local/
+trained-model-*/
+checkpoint-*/
+
+# 2. 忽略训练过程中的大量日志文件夹
+logs_*/
+logs/
+*.out
+*.err
+
+# 3. 忽略 Python 缓存和虚拟环境
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+nanogpt-env/
+
+# 4. 忽略大的数据集 (如果文件超过 100MB 必须忽略)
+# *.jsonl 
+# 如果你的 jsonl 小于 100MB，可以保留，不用取消上面的注释
+
+# 5. 保留核心结果图片和表格 (不忽略)
+!*.png
+!*.csv
+!*.py
+!*.slurm
+!*.json
