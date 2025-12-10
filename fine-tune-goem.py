@@ -249,38 +249,29 @@ trainer = SFTTrainer(
 if global_rank == 0: print("Starting Training...")
 trainer.train()
 
-# --- 8. Final Evaluation & Plotting (DDP) ---
+# --- 8. Final Evaluation, Plotting & Advanced Analysis ---
 dist.barrier()
 if global_rank == 0:
     print("--- Training Finished. Saving Model... ---")
     trainer.model.save_pretrained("trained-model-goemotions-final")
     tokenizer.save_pretrained("trained-model-goemotions-final")
-
+    
     print("Generating Loss Plot...")
     log_history = trainer.state.log_history
-    
     train_steps = [x["step"] for x in log_history if "loss" in x]
     train_losses = [x["loss"] for x in log_history if "loss" in x]
-    
     eval_steps = [x["step"] for x in log_history if "eval_loss" in x]
     eval_losses = [x["eval_loss"] for x in log_history if "eval_loss" in x]
     
     plt.figure(figsize=(10, 6))
-    if train_losses:
-        plt.plot(train_steps, train_losses, label="Training Loss", color="blue", alpha=0.6)
-    if eval_losses:
-        plt.plot(eval_steps, eval_losses, label="Validation Loss", color="orange", linewidth=2)
-        
-    plt.xlabel("Steps")
-    plt.ylabel("Loss")
-    plt.title("Training and Validation Loss Curve")
+    if train_losses: plt.plot(train_steps, train_losses, label="Training Loss", color="blue", alpha=0.6)
+    if eval_losses: plt.plot(eval_steps, eval_losses, label="Validation Loss", color="orange", linewidth=2)
     plt.legend()
-    plt.grid(True)
-    
+    plt.title("Gemma 12B Training Curve")
     plt.savefig("loss_plot_goemotions.png")
-    print("Saved loss chart to 'loss_plot_goemotions.png'")
+    print(" Saved loss chart.")
 
-    print("Starting Final Evaluation...")
+    print("\n Starting Final Evaluation...")
 
 model.gradient_checkpointing_disable() 
 model.config.use_cache = True
@@ -290,47 +281,41 @@ y_pred_final = distributed_predict(test_prompts_list, model, tokenizer)
 
 if global_rank == 0:
     print(f"Final Eval finished in {time.time() - start_time:.2f}s")
+
     if len(test_labels_list) > 0:
         evaluate_metrics(test_labels_list, y_pred_final, phase="Final")
     
-    csv_filename = "goemotions_results.csv"
     results_df = pd.DataFrame({'input': df_test['input'], 'true': test_labels_list, 'pred': y_pred_final})
-    results_df.to_csv(csv_filename, index=False)
-    print(f"Saved results csv to {csv_filename}")
+    results_df.to_csv("goemotions_results.csv", index=False)
+    print("✅ Saved raw predictions to goemotions_results.csv")
 
-    print("Generating Detailed Classification Report & Heatmap...")
+    print("\n Starting Advanced Analysis...")
     
-    def parse_labels(text):
-        if pd.isna(text) or str(text).lower() == "none":
-            return []
-        return [t.strip().lower() for t in str(text).split(',') if t.strip()]
+    try:
+        with open('ekman_mapping.json', 'r') as f:
+            ekman_lookup = invert_mapping(json.load(f))
+        with open('sentiment_mapping.json', 'r') as f:
+            sentiment_lookup = invert_mapping(json.load(f))
+            
+        y_true_orig = results_df['true'].apply(parse_labels)
+        y_pred_orig = results_df['pred'].apply(parse_labels)
 
-    y_true = results_df['true'].apply(parse_labels)
-    y_pred = results_df['pred'].apply(parse_labels)
+        generate_analysis(y_true_orig, y_pred_orig, "Original 28 Emotions", "goemotions_original")
 
-    mlb = MultiLabelBinarizer()
-    y_true_bin = mlb.fit_transform(y_true)
-    y_pred_bin = mlb.transform(y_pred)
-    labels = mlb.classes_
+        y_true_ekman = y_true_orig.apply(lambda x: map_labels(x, ekman_lookup))
+        y_pred_ekman = y_pred_orig.apply(lambda x: map_labels(x, ekman_lookup))
+        generate_analysis(y_true_ekman, y_pred_ekman, "Ekman Grouping", "goemotions_ekman")
 
-    print(f"\n📊 Total Classes Detected: {len(labels)}")
-    
-    print("="*60)
-    print("           DETAILED CLASSIFICATION REPORT")
-    print("="*60)
-    report = classification_report(y_true_bin, y_pred_bin, target_names=labels, zero_division=0)
-    print(report)
-
-    confusion_matrix = np.zeros((len(labels), len(labels)))
-
-    for true_labels, pred_labels in zip(y_true, y_pred):
-        for t in true_labels:
-            if t in labels:
-                t_idx = np.where(labels == t)[0][0]
-                for p in pred_labels:
-                    if p in labels:
-                        p_idx = np.where(labels == p)[0][0]
-                        confusion_matrix[t_idx, p_idx] += 1
+        y_true_sent = y_true_orig.apply(lambda x: map_labels(x, sentiment_lookup))
+        y_pred_sent = y_pred_orig.apply(lambda x: map_labels(x, sentiment_lookup))
+        generate_analysis(y_true_sent, y_pred_sent, "Sentiment Grouping", "goemotions_sentiment")
+        
+        print("\n All Analysis Completed Successfully!")
+        
+    except FileNotFoundError:
+        print(" Mapping JSON files not found. Skipping Ekman/Sentiment analysis.")
+    except Exception as e:
+        print(f" Analysis Error: {e}")trix[t_idx, p_idx] += 1
 
     plt.figure(figsize=(20, 16))
     sns.heatmap(confusion_matrix, xticklabels=labels, yticklabels=labels, cmap="Blues", annot=False)
@@ -340,4 +325,3 @@ if global_rank == 0:
     plt.tight_layout()
     plt.savefig("goemotions_confusion_heatmap.png")
     print("Saved heatmap to 'goemotions_confusion_heatmap.png'")
-    # 👆👆👆 评估结束 👆👆👆
