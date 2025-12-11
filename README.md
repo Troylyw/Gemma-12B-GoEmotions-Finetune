@@ -10,7 +10,7 @@ The GoEmotions dataset is a large-scale corpus of Reddit comments annotated with
 
 - **Distributed Training**: Supports DDP for multi-GPU training on SLURM clusters
 - **Efficient Fine-tuning**: Uses LoRA with DoRA for parameter-efficient training
-- **Multiple Learning Rates**: Includes variants with different learning rates (5e-4, 5e-5)
+- **Multiple Learning Rates**: Includes variants with different learning rates (5e-4, 5e-5,4e-4)
 - **Comprehensive Evaluation**: 
   - Baseline and post-training evaluation
   - Multi-label classification metrics
@@ -101,8 +101,7 @@ Modify the script to set `WORLD_SIZE=1` and `RANK=0` if running on a single GPU 
 ### Main Training Scripts
 
 - **`fine-tune-goem.py`**: Main training script with learning rate 4e-4 (default)
-- **`fine-tune-goem_5e-4.py`**: Variant with learning rate 5e-4
-- **`fine-tune-goem-5e-5.py`**: Variant with learning rate 5e-5
+- **`fine-tune-goem_original_1e-5.py`**: Original fine tune with learning rate 1e-5
 
 ### Configuration Files
 
