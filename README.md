@@ -1,23 +1,21 @@
 # Gemma-12B GoEmotions Fine-tuning
 
-This repository contains code for fine-tuning Google's Gemma-3-12B-IT model on the GoEmotions dataset for emotion classification tasks. The project implements efficient fine-tuning using LoRA (Low-Rank Adaptation) with DoRA (Weight-Decomposed Low-Rank Adaptation) and supports distributed training via PyTorch Distributed Data Parallel (DDP).
+This repository contains code for fine-tuning Google's Gemma-3-12B-IT model on the GoEmotions dataset. The project implements parameter-efficient fine-tuning using LoRA (Low-Rank Adaptation) with DoRA and supports distributed training on SLURM clusters via PyTorch Distributed Data Parallel (DDP).
 
 ## Overview
 
-The GoEmotions dataset is a large-scale corpus of Reddit comments annotated with emotion labels. This project fine-tunes the Gemma-12B model to perform emotion classification, supporting both original emotion labels and aggregated categories (Ekman's six basic emotions and sentiment classification).
+The GoEmotions dataset is a large-scale corpus of Reddit comments annotated with emotion labels. This project fine-tunes Gemma-12B to classify these emotions across three granularities:
+
+* **Original:** 27 emotion labels + Neutral.
+* **Ekman:** Mapped to 6 basic emotions (Anger, Disgust, Fear, Joy, Sadness, Surprise).
+* **Sentiment:** Mapped to Positive, Negative, or Ambiguous.
 
 ## Features
 
-- **Distributed Training**: Supports DDP for multi-GPU training on SLURM clusters
-- **Efficient Fine-tuning**: Uses LoRA with DoRA for parameter-efficient training
-- **Multiple Learning Rates**: Includes variants with different learning rates (Initial fine-tuned:1e-5, After fine-tuned:4e-4)
-- **Comprehensive Evaluation**: 
-  - Baseline and post-training evaluation
-  - Multi-label classification metrics
-  - Confusion matrix heatmaps
-  - Training loss visualization
-- **Emotion Mappings**: Supports original labels, Ekman emotions, and sentiment classification
-- **Fast Inference**: Optimized distributed inference for evaluation
+* **Distributed Training:** DDP support for multi-GPU training on SLURM clusters.
+* **Efficient Fine-tuning:** LoRA + DoRA implementation on linear projection layers.
+* **Comprehensive Analysis:** Automated generation of confusion matrices, loss curves, and multi-label metrics (Precision, Recall, F1).
+* **Comparative Experimentation:** Includes scripts and logs for different learning rate strategies.
 
 ## Requirements
 
