@@ -104,7 +104,7 @@ torchrun --nproc_per_node=<num_gpus> fine-tune-goem.py
 
 Modify the script to set `WORLD_SIZE=1` and `RANK=0` if running on a single GPU (note: memory constraints may apply for a 12B model).
 
-## Scripts
+## Training & Scripts
 
 ### Main Training (Recommended)
 `fine-tune-goem.py` is the optimized training script (Learning Rate: 4e-4). It handles the full fine-tuning lifecycle and generates the final model artifacts.
