@@ -100,7 +100,7 @@ Modify the script to set `WORLD_SIZE=1` and `RANK=0` if running on a single GPU 
 
 ### Main Training Scripts
 
-- **`fine-tune-goem.py`**: Main training script with learning rate 4e-4 (default)
+- **`fine-tune-goem.py`**: The best training script with learning rate 4e-4
 - **`fine-tune-goem_original_1e-5.py`**: Original fine tune with learning rate 1e-5
 
 ### Configuration Files
@@ -151,10 +151,11 @@ After training, the following files are generated:
 
 ### Visualizations
 - `loss_plot_goemotions.png`: Training and validation loss curves
-- `goemotions_confusion_heatmap.png`: Confusion matrix heatmap for emotion classification
-- `goemotions_original_heatmap.png`: Heatmap for original emotion labels
+- `classified_report.png`: gpemotions accuracy and detailed classification result
 - `goemotions_ekman_heatmap.png`: Heatmap for Ekman emotion categories
 - `goemotions_sentiment_heatmap.png`: Heatmap for sentiment classification
+- `goemotions_sentiment_heatmap.png`: Heatmap for sentiment classification
+- `baseline.png`: zero shot accuracy
 
 ## Evaluation Metrics
 
