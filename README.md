@@ -106,10 +106,14 @@ Modify the script to set `WORLD_SIZE=1` and `RANK=0` if running on a single GPU 
 
 ## Scripts
 
-### Main Training Scripts
+### Main Training (Recommended)
+`fine-tune-goem.py` is the optimized training script (Learning Rate: 4e-4). It handles the full fine-tuning lifecycle and generates the final model artifacts.
 
-- **`fine-tune-goem.py`**: The best training script with learning rate 4e-4
-- **`fine-tune-goem_original_1e-5.py`**: Original fine tune with learning rate 1e-5
+### Preliminary Experiments
+`fine-tune-goem-original_1e-5.py` is provided for experimental comparison using a lower learning rate (1e-5).
+
+* The results from these early runs (including basic loss curves `loss_plot_goemotions.png` and initial reports) are stored in the `original_fine_tune/` folder.
+* You can use these artifacts to analyze the impact of hyperparameters on model convergence compared to the final version.
 
 ### Configuration Files
 
