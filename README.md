@@ -57,9 +57,20 @@ pip install torch transformers peft trl datasets scikit-learn pandas matplotlib 
 huggingface-cli login
 ```
 
-## Dataset Format
+## Dataset Preparation
 
-The dataset should be in JSONL format with the following structure:
+The project includes a dedicated pipeline for handling the GoEmotions dataset located in the `original dataset and prepossessing/` directory.
+
+* **Raw Data:** The original `train.tsv`, `dev.tsv`, and `test.tsv` files are stored here.
+* **Preprocessing:** Use the `dataset_clean.py` script in this folder to convert the raw TSV data into the JSONL format required by the model.
+* **Mappings:** Files like `emotions.txt` and `ekman_mapping.json` are provided here to handle label conversions.
+
+**To prepare the data, run:**
+
+```bash
+python "original dataset and prepossessing/dataset_clean.py"
+
+**Thg dataset should be in JSONL format with the following structure:
 
 ```json
 {"instruction": "Analyze the text and identify the emotions.", "input": "Text to analyze", "output": "emotion_label"}
