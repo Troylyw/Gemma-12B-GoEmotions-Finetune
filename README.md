@@ -69,9 +69,8 @@ The project includes a dedicated pipeline for handling the GoEmotions dataset lo
 
 ```bash
 python "original dataset and prepossessing/dataset_clean.py"
-
-**Thg dataset should be in JSONL format with the following structure:
-
+```
+**Thg dataset should be in JSONL format with the following structure:**
 ```json
 {"instruction": "Analyze the text and identify the emotions.", "input": "Text to analyze", "output": "emotion_label"}
 ```
