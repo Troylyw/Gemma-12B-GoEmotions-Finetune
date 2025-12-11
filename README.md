@@ -149,24 +149,18 @@ Modify the script to set `WORLD_SIZE=1` and `RANK=0` if running on a single GPU 
 
 ## Output Files
 
-After training, the following files are generated:
+Upon completion of the optimized training (`fine-tune-goem.py`), all detailed evaluation artifacts are consolidated in the `final fine tune/` directory.
 
-### Model Checkpoints
-- `trained-model-goemotions-final/`: Final fine-tuned model and tokenizer
-- `logs_goemotions_fast/`: Training checkpoints and logs
+### 1. Detailed Reports (CSV)
+* **`goemotions_results.csv`**: Contains the input text with both True and Predicted labels for every sample in the test set.
+* **`*_report.csv`**: Detailed classification metrics (Precision, Recall, F1-score) broken down by Original emotions, Ekman categories, and Sentiment polarity.
 
-### Evaluation Results
-- `goemotions_results.csv`: Test set predictions with true and predicted labels
-- `goemotions_original_report.csv`: Classification report for original emotion labels
-- `goemotions_ekman_report.csv`: Classification report for Ekman emotions
-- `goemotions_sentiment_report.csv`: Classification report for sentiment classification
-
-### Visualizations
-- `loss_plot_goemotions.png`: Training and validation loss curves
-- `classified_report.png`: gpemotions accuracy and detailed classification result
-- `goemotions_ekman_heatmap.png`: Heatmap for Ekman emotion categories
-- `goemotions_sentiment_heatmap.png`: Heatmap for sentiment classification
-- `baseline.png`: zero shot accuracy
+### 2. Visualizations
+* **Heatmaps:** `goemotions_confusion_heatmap.png`, `goemotions_ekman_heatmap.png`, and `goemotions_sentiment_heatmap.png` visualize the model's classification performance across different categories.
+* **Accuracy Analysis:**
+    * `baseline.png`: Comparison with zero-shot baseline performance.
+    * `exact accurary.png`: Exact match accuracy metrics.
+* **Training Dynamics:** `loss_plot_goemotions.png` shows the training and validation loss descent.
 
 ## Evaluation Metrics
 
