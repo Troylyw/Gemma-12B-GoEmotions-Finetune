@@ -10,7 +10,7 @@ The GoEmotions dataset is a large-scale corpus of Reddit comments annotated with
 
 - **Distributed Training**: Supports DDP for multi-GPU training on SLURM clusters
 - **Efficient Fine-tuning**: Uses LoRA with DoRA for parameter-efficient training
-- **Multiple Learning Rates**: Includes variants with different learning rates (Baseline:1e-5, After fine-tuned:4e-4)
+- **Multiple Learning Rates**: Includes variants with different learning rates (Initial fine-tuned:1e-5, After fine-tuned:4e-4)
 - **Comprehensive Evaluation**: 
   - Baseline and post-training evaluation
   - Multi-label classification metrics
