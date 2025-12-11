@@ -164,7 +164,6 @@ After training, the following files are generated:
 - `classified_report.png`: gpemotions accuracy and detailed classification result
 - `goemotions_ekman_heatmap.png`: Heatmap for Ekman emotion categories
 - `goemotions_sentiment_heatmap.png`: Heatmap for sentiment classification
-- `goemotions_sentiment_heatmap.png`: Heatmap for sentiment classification
 - `baseline.png`: zero shot accuracy
 
 ## Evaluation Metrics
