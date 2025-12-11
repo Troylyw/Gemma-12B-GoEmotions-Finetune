@@ -23,6 +23,6 @@ export TORCHAO_CPP_EXT_SKIP=1
 
 echo "Job started on $(hostname) at $(date)"
 
-srun -u python fine-tune-goem-5e-5.py
+srun -u python fine-tune-goem.py
 
 echo "Job finished at $(date)"
